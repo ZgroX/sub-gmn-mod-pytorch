@@ -25,6 +25,7 @@ from skimage.util import img_as_float
 from skimage import io, transform, color
 from skimage.transform import AffineTransform, warp
 
+from PairData import PairData
 from python import anno_func
 import matplotlib.pyplot as plt
 import torchvision.transforms.functional as F
@@ -75,7 +76,7 @@ def pytorch_slic():
     torch_image = torchvision.transforms.ToTensor()(cropped_image)
     torch_mark = torchvision.transforms.ToTensor()(mark)
 
-    torch_seg_image_with_edges = utils.get_graph_from_image(torch_image, 5_000, 50)
+    torch_seg_image_with_edges = utils.get_graph_from_image(torch_image, 100, 50)
 
     utils.draw_graph(torch_seg_image_with_edges, (20, 20), 'images/rag_graph.png')
 
@@ -89,8 +90,8 @@ def truth_matrix():
     torch_image = torchvision.transforms.ToTensor()(cropped_image)
     torch_mark = torchvision.transforms.ToTensor()(mark)
 
-    torch_seg_image_with_edges = utils.get_graph_from_image(torch_image, 5000, 50)
-    torch_seg_mark_with_edges = utils.get_graph_from_image(torch_mark, 100, 150, mask)
+    torch_seg_image_with_edges = utils.get_graph_from_image(torch_image, 100, 50)
+    torch_seg_mark_with_edges = utils.get_graph_from_image(torch_mark, 20, 150, mask)
 
     img_pos = np.round(torch_seg_image_with_edges.pos.numpy()).tolist()
     mask_pos = []
@@ -149,8 +150,48 @@ def truth_matrix():
                      labels=mark_labels)
 
 
+
+def draw_graphs_from_pair(pair: PairData):
+
+    query_graph = torch_geometric.data.Data(x=pair.x_q[0], edge_index=pair.edge_index_q[0], pos=pair.pos_q[0])
+    data_graph = torch_geometric.data.Data(x=pair.x_d[0], edge_index=pair.edge_index_d[0], pos=pair.pos_d[0])
+    t_m = pair.truth_matrix
+
+
+
+    img_labels = {}
+    i = 0
+    for n_id, node in enumerate(t_m[:, 0]):
+        if torch.sum(node) > 0:
+            img_labels[n_id] = f"{i}"
+            i += 1
+        else:
+            img_labels[n_id] = "X"
+    #
+    # mask_labels = {}
+    # for node in t_m[:, 1]:
+    #     if node in mapped_nodes[:, 0]:
+    #         mask_labels[node] = mark_labels[mapped_nodes[mapped_nodes[:, 0] == node, 1][0]]
+    #     else:
+    #         mask_labels[node] = "X"
+    #
+    # node_color = np.full(len(data_graph.pos), "blue")
+    # node_color[mask_nodes_ids] = "red"
+    #
+    # utils.draw_graph(data_graph, (60, 60), 'images/masked_graph_red.png', with_labels=True,
+    #                  labels=mask_labels,
+    #                  node_color=node_color)
+    #
+    # utils.draw_graph(query_graph, (20, 20), 'images/masked_mark_graph_red.png', with_labels=True,
+    #                  labels=mark_labels)
+
+
 if __name__ == '__main__':
     # truth_matrix()
-    # pytorch_slic()
-    data_module = TrafficSignDataModule()
-    data_module.prepare_data()
+    pytorch_slic()
+    # data_module = TrafficSignDataModule(batch_size=1)
+    # data_module.prepare_data()
+    # data_module.setup()
+    # draw_graphs_from_pair(data_module.data_train[0])
+    # x=0
+

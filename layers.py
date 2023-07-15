@@ -18,7 +18,7 @@ class three_gcn(torch.nn.Module):
         y2 = self.gcn2(x=y1, edge_index=edge_index)
         y2 = torch.nn.functional.elu(y2)
         y3 = self.gcn3(x=y2, edge_index=edge_index)
-        y3 = torch.nn.functional.sigmoid(y3)
+        y3 = torch.nn.functional.softmax(y3)
         return y1, y2, y3
 
 
@@ -37,7 +37,7 @@ def att_layer(batch_q_em, batch_da_em):  # batch_q_em bx5xc   batch_da_em bx18xc
         T_batch_da_em = torch.transpose(da_em, 0, 1)
         temp_att = torch.matmul(q_em, T_batch_da_em)
         temp_att = temp_att / (D ** 0.5)
-        temp_att = torch.nn.functional.sigmoid(temp_att).unsqueeze(0)
+        temp_att = torch.nn.functional.softmax(temp_att, dim=1).unsqueeze(0)
         att.append(temp_att)
     return att  # att bx1x5x18
 

@@ -38,11 +38,13 @@ def load_mask(annos, category, imgid, imgdata):
     mask_ellipse = np.zeros(imgdata.shape[:-1])
     center = ()
     height = 0
+    length = 0
     for obj in img['objects']:
         if obj['category'] == category:
             box = obj['bbox']
-            center = (int(box['xmin']), int(box['ymin']))
             height = int(box['ymax']) - int(box['ymin'])
+            length = int(box['xmax']) - int(box['xmin'])
+            center = (int(box['xmin']) + length//2, int(box['ymin']) + height//2)
             cv2.rectangle(mask, (int(box['xmin']), int(box['ymin'])), (int(box['xmax']), int(box['ymax'])), 1, -1)
             if 'polygon' in obj and len(obj['polygon'])>0:
                 pts = np.array(obj['polygon'])
@@ -58,7 +60,7 @@ def load_mask(annos, category, imgid, imgdata):
                 cv2.rectangle(mask_ellipse, (int(box['xmin']), int(box['ymin'])), (int(box['xmax']), int(box['ymax'])), 1, -1)
 
     mask = mask_ellipse
-    return mask, center, height
+    return mask, center, height, length
     
 def draw_all(annos, datadir, imgid, imgdata, color=(0,1,0), have_mask=True, have_label=True):
     img = annos["imgs"][imgid]

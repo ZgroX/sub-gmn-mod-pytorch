@@ -11,7 +11,7 @@ import regularization
 from subgmn import sub_GMN
 
 
-lr = 0.000001
+lr = 0.001
 weight_decay = 0.01
 
 class Reshape(nn.Module):
@@ -38,9 +38,10 @@ class Model(pl.LightningModule):
     def __init__(self, GCN_in, GCN_out, NTN_k):
         super().__init__()
         self.model = sub_GMN(GCN_in, GCN_out, NTN_k)
-        self.reg = regularization.Regularization(self.model, weight_decay=weight_decay, p=0)
-        self.xavier_init(self.model)
-        self.loss_function = losses.AsymmetricLoss()
+        #self.reg = regularization.Regularization(self.model, weight_decay=weight_decay, p=0)
+        #self.xavier_init(self.model)
+        #self.loss_function = losses.AsymmetricLoss()
+        self.loss_function = torch.nn.MSELoss()
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=lr)
@@ -66,7 +67,7 @@ class Model(pl.LightningModule):
         for y_h, y_t in zip(y_hat[1:], y[1:]):
             loss += self.loss_function(y_h, y_t).to(self.device)
         loss /= len(y)
-        loss += self.reg(self.model)
+        #loss += self.reg(self.model)
         accuracy = Accuracy(task="binary").to(self.device)
         [accuracy.update(y_h, y_t) for y_h, y_t in zip(y_hat, y)]
         acc = accuracy.compute()

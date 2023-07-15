@@ -75,8 +75,8 @@ class sub_GMN(torch.nn.Module):
         he_1 = N1_16
         # he_1 = torch.cat([b_same_adddim, N1_16], dim=1)  # he_1 bx(k+1)x5x18
         end1 = [self.Con1(x) for x in he_1]  # end1 bx1x5x18
-        #end1 = [torch.softmax(x, dim=2) for x in end1]
-        end1 = [self.activation(x) for x in end1]
+        end1 = [torch.softmax(x, dim=2) for x in end1]
+        #end1 = [self.activation(x) for x in end1]
         # 2
         att2 = att_layer(batch_q_em=q2, batch_da_em=da2)  # att bx1x5x18
         N2_16 = self.NTN2(q2, da2)  # N_16 bxkx5x18
@@ -85,8 +85,8 @@ class sub_GMN(torch.nn.Module):
         he_2 = N2_16
         # he_2 = torch.cat([b_same_adddim, N2_16], dim=1)  # he bx(k+1)x5x18
         end2 = [self.Con2(x) for x in he_2]  # end1 bx1x5x18
-        #end2 = [torch.softmax(x, dim=2) for x in end2]
-        end2 = [self.activation(x) for x in end2]
+        nd2 = [torch.softmax(x, dim=2) for x in end2]
+        #end2 = [self.activation(x) for x in end2]
         # 3
         att3 = att_layer(batch_q_em=q3, batch_da_em=da3)  # att bx1x5x18
         N3_16 = self.NTN3(q3, da3)  # N_16 bxkx5x18
@@ -95,8 +95,8 @@ class sub_GMN(torch.nn.Module):
         he_3 = N3_16
         # he_3 = torch.cat([b_same_adddim, N3_16], dim=1)  # he bx(k+1)x5x18
         end3 = [self.Con3(x) for x in he_3]  # end1 bx1x5x18
-        #end3 = [torch.softmax(x, dim=2) for x in end3]
-        end3 = [self.activation(x) for x in end3]
+        end3 = [torch.softmax(x, dim=2) for x in end3]
+        #end3 = [self.activation(x) for x in end3]
         # end
         end = [torch.cat([e1, e2, e3, h1, h2, h1], dim=0) for e1, e2, e3, h1, h2, h1 in
                zip(end1, end2, end3, he_1, he_2, he_3)]  # end bx(3k+6)x5x18
@@ -108,7 +108,7 @@ class sub_GMN(torch.nn.Module):
         #     end = end * b_same  # end bx5x18
         #     # end = torch.softmax(end, dim=2)
         # else:
-        #end = [torch.softmax(e, dim=1) for e in end]
+        end = [torch.softmax(e, dim=1) for e in end]
         #end = [self.activation(e) for e in end]
 
         return end

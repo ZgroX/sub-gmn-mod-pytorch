@@ -22,7 +22,7 @@ from PairData import PairData
 class TraficSignDataset(InMemoryDataset):
     """Loads all graphs from the Trafic sign dataset"""
 
-    def __init__(self, root="data/", data_graph_seg_size=5_000, query_graph_seg_size=100, data_graph_compactness=50,
+    def __init__(self, root="data/", data_graph_seg_size=100, query_graph_seg_size=20, data_graph_compactness=50,
                  query_graph_compactness=150):
         self.data_dir = root
         self.test_path = join(root, "test")
@@ -49,7 +49,7 @@ class TraficSignDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return "data_pair.pt"
+        return f"data_pair_qg{self.query_graph_seg_size}.pt"
 
     def _generate_graphs(self, cropped_img):
         cropped_image, cropped_mask, category = cropped_img

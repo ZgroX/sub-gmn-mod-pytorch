@@ -69,44 +69,78 @@ def get_cropped_img_mask_cat(imgid):
     if category is None:
         return None
 
-    mask, center, height = anno_func.load_mask(annos, category, imgid, image)
+    mask, center, height, length = anno_func.load_mask(annos, category, imgid, image)
     # plt.imshow(anno_func.draw_all(annos, category, imgid, image, have_label=False))
     # plt.show()
 
-    scale_factor = 280 / height
-    size = (1000, 1000)
+    mark_size = 280
+    scale_factor = mark_size / height
+    size = (400, 400)
+
 
     o_height = image.shape[0]
     o_width = image.shape[1]
 
-    half_height = int(height)
+    size_factor = o_height / size[0]
 
-    dist_to_left = center[0] - half_height
-    dist_to_right = image.shape[0] - center[0] - half_height
+
+
+    half_length = half_height = max(height, length) / 2
+
+    dist_to_left = center[0] - half_length
+    dist_to_right = image.shape[0] - center[0] - half_length
     dist_to_top = center[1] - half_height
     dist_to_bottom = image.shape[1] - center[1] - half_height
 
-    if dist_to_left < 0 or dist_to_right < 0 or dist_to_bottom < 0 or dist_to_top < 0:
-        minimum = min(dist_to_top, dist_to_bottom, dist_to_right, dist_to_left)
-        dist_to_right -= minimum
-        dist_to_bottom -= minimum
-        dist_to_left -= minimum
-        dist_to_top -= minimum
+
 
     # Obliczenie nowych granic przycięcia
-    left = dist_to_left - int(dist_to_left / scale_factor)
-    right = int(o_width - dist_to_right + (dist_to_right / scale_factor))
-    top = dist_to_top - int(dist_to_top / scale_factor)
-    bottom = int(o_height - dist_to_bottom + (dist_to_bottom / scale_factor))
+    # left = dist_to_left - int(dist_to_left / scale_factor)
+    # right = int(o_width - dist_to_right + (dist_to_right / scale_factor))
+    # top = dist_to_top - int(dist_to_top / scale_factor)
+    # bottom = int(o_height - dist_to_bottom + (dist_to_bottom / scale_factor))
+
+    # left = dist_to_left - int(dist_to_left / size_factor / scale_factor)
+    # right = int(o_width - dist_to_right + (dist_to_right / size_factor / scale_factor))
+    # top = dist_to_top - int(dist_to_top / size_factor / scale_factor)
+    # bottom = int(o_height - dist_to_bottom + (dist_to_bottom / size_factor / scale_factor))
+
+    prop_left = dist_to_left / (dist_to_left + dist_to_right)
+    prop_right = dist_to_right / (dist_to_left + dist_to_right)
+    prop_bottom = dist_to_bottom / (dist_to_bottom + dist_to_top)
+    prop_top = dist_to_top / (dist_to_bottom + dist_to_top)
+
+    left_after = ((size[0] - mark_size) * prop_left) / scale_factor
+    top_after = ((size[0] - mark_size) * prop_top) / scale_factor
+    right_after = ((size[0] - mark_size) * prop_right) / scale_factor
+    bottom_after = ((size[0] - mark_size) * prop_bottom) / scale_factor
+
+
+
+    left = round(dist_to_left - left_after)
+    top = round(dist_to_top - top_after)
+    right = round(o_width - dist_to_right + right_after)
+    bottom = round(o_height - dist_to_bottom + bottom_after)
+
+
+
+    if left > o_height or right > o_height or bottom > o_height or top > o_height:
+        maximum = max(top, bottom, right, left)
+        diff = maximum - o_height
+        left -= diff
+        right -= diff
+        bottom -= diff
+        top -= diff
 
 
     cropped_image = image[top:bottom, left:right]
     cropped_mask = mask[top:bottom, left:right]
 
+    rescaled_image = cropped_image
+    rescaled_mask = cropped_mask
 
     rescaled_image = transform.resize(cropped_image, size, anti_aliasing=True)
     rescaled_mask = transform.resize(np.asarray(cropped_mask, dtype=bool), size, anti_aliasing=None)
-
 
     # Przycięcie obrazu
 
