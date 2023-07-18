@@ -10,9 +10,9 @@ import losses
 import regularization
 from subgmn import sub_GMN
 
-
 lr = 0.001
 weight_decay = 0.01
+
 
 class Reshape(nn.Module):
     def __init__(self, *args):
@@ -35,13 +35,17 @@ class Expand(nn.Module):
 class Model(pl.LightningModule):
     full_state_update = False
 
-    def __init__(self, GCN_in, GCN_out, NTN_k):
+    def __init__(self, GCN_in, GCN_out, NTN_k, is_softmax):
         super().__init__()
-        self.model = sub_GMN(GCN_in, GCN_out, NTN_k)
-        #self.reg = regularization.Regularization(self.model, weight_decay=weight_decay, p=0)
-        #self.xavier_init(self.model)
-        #self.loss_function = losses.AsymmetricLoss()
-        self.loss_function = torch.nn.MSELoss()
+        self.is_softmax = is_softmax
+        self.model = sub_GMN(GCN_in, GCN_out, NTN_k, is_softmax)
+
+        if is_softmax:
+            self.loss_function = torch.nn.MSELoss()
+        else:
+            self.loss_function = losses.AsymmetricLoss()
+            self.xavier_init(self.model)
+            self.reg = regularization.Regularization(self.model, weight_decay=weight_decay, p=0)
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=lr)
@@ -55,19 +59,20 @@ class Model(pl.LightningModule):
         y_hat = self.model(x_d, edge_index_d, x_q, edge_index_q, x_d_batch, x_q_batch)
         y = [torch.Tensor(y_t).to(self.device) for y_t in y]
 
-        #yy = [[torch.masked_select(y_h.T, y_t.type(torch.bool)).to(self.device), torch.masked_select(y_t, y_t.type(torch.bool)).to(self.device)] for y_h, y_t in zip(y_hat, y)]
-
-        yy = [[y_h.T, y_t] for y_h, y_t in zip(y_hat, y)]
+        if self.is_softmax:
+            yy = [[torch.masked_select(y_h.T, y_t.type(torch.bool)).to(self.device), torch.masked_select(y_t, y_t.type(torch.bool)).to(self.device)] for y_h, y_t in zip(y_hat, y)]
+        else:
+            yy = [[y_h.T, y_t] for y_h, y_t in zip(y_hat, y)]
 
         y_hat = [x for x, _ in yy]
         y = [x for _, x in yy]
-
 
         loss = self.loss_function(y_hat[0], y[0]).to(self.device)
         for y_h, y_t in zip(y_hat[1:], y[1:]):
             loss += self.loss_function(y_h, y_t).to(self.device)
         loss /= len(y)
-        #loss += self.reg(self.model)
+        if not self.is_softmax:
+            loss += self.reg(self.model)
         accuracy = Accuracy(task="binary").to(self.device)
         [accuracy.update(y_h, y_t) for y_h, y_t in zip(y_hat, y)]
         acc = accuracy.compute()
@@ -80,7 +85,7 @@ class Model(pl.LightningModule):
         self.log("loss", loss, on_epoch=True, prog_bar=True, logger=True)
         return loss.to(self.device)
 
-    #TODO other steps, focusing now on training_step
+    # TODO other steps, focusing now on training_step
     def validation_step(self, batch, batch_idx):
         loss, acc = self._shared_eval_step(batch, batch_idx)
         self.log("val_loss", loss, prog_bar=True, on_epoch=True, logger=True)

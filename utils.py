@@ -207,7 +207,7 @@ def draw_graph(torch_graph, size: tuple, path, **kwargs):
     networkx_image_graph = torch_geometric.utils.to_networkx(torch_graph, to_undirected=True)
 
     options = {
-        "node_size": 10,
+        "node_size": 300,
         "edge_color": "black",
         "arrowstyle": "-",
         "arrows": False,

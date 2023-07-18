@@ -5,8 +5,9 @@ import torch_geometric.nn as g_nn
 
 
 class three_gcn(torch.nn.Module):
-    def __init__(self, in_size, out_size):
+    def __init__(self, in_size, out_size, is_softmax):
         super(three_gcn, self).__init__()
+        self.is_softmax = is_softmax
         self.out_size = out_size
         self.gcn1 = g_nn.GraphConv(in_channels=in_size, out_channels=self.out_size)
         self.gcn2 = g_nn.GraphConv(in_channels=self.out_size, out_channels=self.out_size)
@@ -18,11 +19,14 @@ class three_gcn(torch.nn.Module):
         y2 = self.gcn2(x=y1, edge_index=edge_index)
         y2 = torch.nn.functional.elu(y2)
         y3 = self.gcn3(x=y2, edge_index=edge_index)
-        y3 = torch.nn.functional.softmax(y3)
+        if self.is_softmax:
+            y3 = torch.nn.functional.softmax(y3)
+        else:
+            y3 = torch.nn.functional.sigmoid(y3)
         return y1, y2, y3
 
 
-def att_layer(batch_q_em, batch_da_em):  # batch_q_em bx5xc   batch_da_em bx18xc   torch.tensor
+def att_layer(batch_q_em, batch_da_em, is_softmax):  # batch_q_em bx5xc   batch_da_em bx18xc   torch.tensor
     #
     # D = batch_q_em.size()[2]
     # T_batch_da_em = torch.transpose(batch_da_em, 1, 2)
@@ -37,7 +41,12 @@ def att_layer(batch_q_em, batch_da_em):  # batch_q_em bx5xc   batch_da_em bx18xc
         T_batch_da_em = torch.transpose(da_em, 0, 1)
         temp_att = torch.matmul(q_em, T_batch_da_em)
         temp_att = temp_att / (D ** 0.5)
-        temp_att = torch.nn.functional.softmax(temp_att, dim=1).unsqueeze(0)
+        if is_softmax:
+            temp_att = torch.nn.functional.sigmoid(temp_att).unsqueeze(0) #TODO according to paper
+            temp_att = torch.nn.functional.softmax(temp_att, dim=1).unsqueeze(0)
+        else:
+            temp_att = torch.nn.functional.sigmoid(temp_att).unsqueeze(0)
+
         att.append(temp_att)
     return att  # att bx1x5x18
 
@@ -96,5 +105,6 @@ class NTN(torch.nn.Module):
             # second part
             end = first + mid + self.b
             out.append(torch.sigmoid(end))
+
         return out  # end bxkx5x18
 

@@ -1,6 +1,7 @@
 from typing import Optional, Sequence
 
 import numpy as np
+import torch
 from pytorch_lightning import LightningDataModule
 from torch.utils.data import random_split
 from torch_geometric.data import DataLoader, Dataset
@@ -12,12 +13,13 @@ class TrafficSignDataModule(LightningDataModule):
     """Datamodule which does something..."""
 
     def __init__(
-        self,
-        data_dir: str = "data/",
-        batch_size: int = 32,
-        num_workers: int = 0,
-        pin_memory: bool = False,
-        train_val_test_percentage_split: Sequence[int] = (0.70, 0.10, 0.20),
+            self,
+            data_dir: str = "data/",
+            batch_size: int = 32,
+            num_workers: int = 0,
+            pin_memory: bool = False,
+            train_val_test_percentage_split: Sequence[int] = (0.70, 0.10, 0.20),
+            seed=42
     ):
         """
         Args:
@@ -29,6 +31,7 @@ class TrafficSignDataModule(LightningDataModule):
         """
         super().__init__()
 
+        self.seed = seed
         self.train_test_val_percentage_split = train_val_test_percentage_split
         self.data_dir = data_dir
         self.batch_size = batch_size
@@ -52,7 +55,7 @@ class TrafficSignDataModule(LightningDataModule):
         """Load data. Split data. Set variables: self.data_train, self.data_val, self.data_test."""
         if not self.data_train or not self.data_val or not self.data_test:
             dataset = TraficSignDataset(root=self.data_dir)
-            self.data_train, self.data_val, self.data_test = random_split(dataset, self.train_test_val_percentage_split)
+            self.data_train, self.data_val, self.data_test = random_split(dataset, self.train_test_val_percentage_split, torch.Generator().manual_seed(self.seed))
 
             self.node_feature_dim = dataset[0].x_d[0].shape[-1]
             if dataset[0].edge_features_d[0] is not None:
@@ -72,7 +75,6 @@ class TrafficSignDataModule(LightningDataModule):
             shuffle=True,
             follow_batch=["x_d", "x_q"],
         )
-
 
     def val_dataloader(self):
         return DataLoader(

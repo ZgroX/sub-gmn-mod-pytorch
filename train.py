@@ -8,15 +8,15 @@ import torch
 import torch.backends.cudnn as cudnn
 
 GCN_IN = 3
-GCN_OUT = 128
-NTN_k = 32
+GCN_OUT = 64
+NTN_k = 10
 
 torch.set_float32_matmul_precision('high')
 
 
 def train():
     dm = TrafficSignDataModule(batch_size=1)
-    model = Model(GCN_IN, GCN_OUT, NTN_k)
+    model = Model(GCN_IN, GCN_OUT, NTN_k, is_softmax=False)
 
     checkpoint_callback = ModelCheckpoint(
         save_top_k=10,
@@ -27,12 +27,12 @@ def train():
     )
     trainer = pl.Trainer(
         accelerator='gpu',
-        max_epochs=5_000,
-        gradient_clip_val=2,
+        max_epochs=10_000,
+        gradient_clip_val=1,
         callbacks=[checkpoint_callback],
         default_root_dir=f"lightning_logs/Sub-GMN/TrafficSign/checkpoints",
         overfit_batches=1,
-        check_val_every_n_epoch=5_000,
+        check_val_every_n_epoch=10_000,
        # precision='16-mixed',
     )
 
