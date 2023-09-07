@@ -19,7 +19,12 @@ class TrafficSignDataModule(LightningDataModule):
             num_workers: int = 0,
             pin_memory: bool = False,
             train_val_test_percentage_split: Sequence[int] = (0.70, 0.10, 0.20),
-            seed=42
+            seed=42,
+            crop_size=(400, 400),
+            data_graph_seg_size=100,
+            query_graph_seg_size=25,
+            data_graph_compactness=50,
+            query_graph_compactness=150,
     ):
         """
         Args:
@@ -31,6 +36,10 @@ class TrafficSignDataModule(LightningDataModule):
         """
         super().__init__()
 
+        self.data_graph_seg_size = data_graph_seg_size
+        self.query_graph_seg_size = query_graph_seg_size
+        self.data_graph_compactness = data_graph_compactness
+        self.query_graph_compactness = query_graph_compactness
         self.seed = seed
         self.train_test_val_percentage_split = train_val_test_percentage_split
         self.data_dir = data_dir
@@ -38,6 +47,7 @@ class TrafficSignDataModule(LightningDataModule):
         self.num_workers = num_workers
         self.pin_memory = pin_memory
 
+        self.crop_size = crop_size
         self.pre_transforms = None
         self.transforms = None
 
@@ -49,13 +59,18 @@ class TrafficSignDataModule(LightningDataModule):
         self.edge_feature_dim = None
 
     def prepare_data(self):
-        TraficSignDataset(root=self.data_dir)
+        TraficSignDataset(root=self.data_dir, crop_size=self.crop_size, query_graph_seg_size=self.query_graph_seg_size,
+                          query_graph_compactness=self.query_graph_compactness, data_graph_compactness=self.data_graph_compactness,
+                          data_graph_seg_size=self.data_graph_seg_size)
 
     def setup(self, stage: Optional[str] = None):
         """Load data. Split data. Set variables: self.data_train, self.data_val, self.data_test."""
         if not self.data_train or not self.data_val or not self.data_test:
-            dataset = TraficSignDataset(root=self.data_dir)
-            self.data_train, self.data_val, self.data_test = random_split(dataset, self.train_test_val_percentage_split, torch.Generator().manual_seed(self.seed))
+            dataset = TraficSignDataset(root=self.data_dir, crop_size=self.crop_size, query_graph_seg_size=self.query_graph_seg_size,
+                          query_graph_compactness=self.query_graph_compactness, data_graph_compactness=self.data_graph_compactness,
+                          data_graph_seg_size=self.data_graph_seg_size)
+            self.data_train, self.data_val, self.data_test = random_split(dataset, self.train_test_val_percentage_split,
+                                                                          torch.Generator().manual_seed(self.seed))
 
             self.node_feature_dim = dataset[0].x_d[0].shape[-1]
             if dataset[0].edge_features_d[0] is not None:

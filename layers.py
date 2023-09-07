@@ -1,32 +1,36 @@
 
 import torch
+import torch.nn as nn
 
 import torch_geometric.nn as g_nn
 
 
 class three_gcn(torch.nn.Module):
-    def __init__(self, in_size, out_size, is_softmax):
+    def __init__(self, in_size, out_size, number):
         super(three_gcn, self).__init__()
-        self.is_softmax = is_softmax
         self.out_size = out_size
-        self.gcn1 = g_nn.GraphConv(in_channels=in_size, out_channels=self.out_size)
-        self.gcn2 = g_nn.GraphConv(in_channels=self.out_size, out_channels=self.out_size)
-        self.gcn3 = g_nn.GraphConv(in_channels=self.out_size, out_channels=self.out_size)
+        self.number = number
+        self.gcns = nn.ModuleList()
+        self.gcns.append(g_nn.GMMConv(in_channels=in_size, out_channels=self.out_size, dim=2, kernel_size=10))
+        for _ in range(self.number-1):
+            self.gcns.append(g_nn.GMMConv(in_channels=self.out_size, out_channels=self.out_size, dim=2, kernel_size=10))
 
-    def forward(self, graph, edge_index):
-        y1 = self.gcn1(x=graph, edge_index=edge_index)
+    def forward(self, graph, edge_index, edge_attr=None):
+        results = []
+
+        y1 = self.gcns[0](x=graph, edge_index=edge_index, edge_attr=edge_attr)
         y1 = torch.nn.functional.elu(y1)
-        y2 = self.gcn2(x=y1, edge_index=edge_index)
-        y2 = torch.nn.functional.elu(y2)
-        y3 = self.gcn3(x=y2, edge_index=edge_index)
-        if self.is_softmax:
-            y3 = torch.nn.functional.softmax(y3)
-        else:
-            y3 = torch.nn.functional.sigmoid(y3)
-        return y1, y2, y3
+        results.append(y1)
+
+        for gcn in self.gcns[1:]:
+            y2 = gcn(x=results[-1], edge_index=edge_index, edge_attr=edge_attr)
+            y2 = torch.nn.functional.elu(y2)
+            results.append(y2)
+
+        return results
 
 
-def att_layer(batch_q_em, batch_da_em, is_softmax):  # batch_q_em bx5xc   batch_da_em bx18xc   torch.tensor
+def att_layer(batch_q_em, batch_da_em):  # batch_q_em bx5xc   batch_da_em bx18xc   torch.tensor
     #
     # D = batch_q_em.size()[2]
     # T_batch_da_em = torch.transpose(batch_da_em, 1, 2)
@@ -41,11 +45,9 @@ def att_layer(batch_q_em, batch_da_em, is_softmax):  # batch_q_em bx5xc   batch_
         T_batch_da_em = torch.transpose(da_em, 0, 1)
         temp_att = torch.matmul(q_em, T_batch_da_em)
         temp_att = temp_att / (D ** 0.5)
-        if is_softmax:
-            temp_att = torch.nn.functional.sigmoid(temp_att).unsqueeze(0) #TODO according to paper
-            temp_att = torch.nn.functional.softmax(temp_att, dim=1).unsqueeze(0)
-        else:
-            temp_att = torch.nn.functional.sigmoid(temp_att).unsqueeze(0)
+        #temp_att = torch.nn.functional.softmax(temp_att, dim=0).unsqueeze(0)
+        temp_att = torch.nn.functional.sigmoid(temp_att)
+
 
         att.append(temp_att)
     return att  # att bx1x5x18

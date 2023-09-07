@@ -58,7 +58,7 @@ test_ids = open(f"{base_path}/test/ids.txt").read().splitlines()
 annos = json.loads(open(ann_path).read())
 
 
-def get_cropped_img_mask_cat(imgid):
+def get_cropped_img_mask_cat(imgid, size):
     img = annos["imgs"][imgid]
     imgpath = base_path + '/' + img['path']
 
@@ -73,9 +73,8 @@ def get_cropped_img_mask_cat(imgid):
     # plt.imshow(anno_func.draw_all(annos, category, imgid, image, have_label=False))
     # plt.show()
 
-    mark_size = 280
+    mark_size = 200
     scale_factor = mark_size / height
-    size = (400, 400)
 
 
     o_height = image.shape[0]
@@ -213,12 +212,36 @@ def draw_graph(torch_graph, size: tuple, path, **kwargs):
         "arrows": False,
     }
 
+
+
     nx_position = {x: [y.numpy()[0], -y.numpy()[1]] for x, y in enumerate(torch_graph.pos)}
     networkx_image_graph.remove_edges_from(nx.selfloop_edges(networkx_image_graph))
     nx.draw(networkx_image_graph, nx_position, **options, **kwargs)
 
     figure = plt.gcf()  # get current figure
     figure.set_size_inches(*size)
+
+
+    plt.savefig(path, dpi=100)
+    plt.clf()
+
+def draw_graph_on_zoomed_img(img_id, torch_graph, path, size, **kwargs):
+    networkx_image_graph = torch_geometric.utils.to_networkx(torch_graph, to_undirected=True)
+
+    options = {
+        "node_size": 10,
+        "edge_color": "black",
+        "arrowstyle": "-",
+        "arrows": False,
+    }
+
+    plt.imshow(get_cropped_img_mask_cat(img_id, size)[0])
+    nx_position = {x: [y.numpy()[0], -y.numpy()[1]] for x, y in enumerate(torch_graph.pos)}
+    networkx_image_graph.remove_edges_from(nx.selfloop_edges(networkx_image_graph))
+    nx.draw(networkx_image_graph, nx_position, **options, **kwargs)
+
+    figure = plt.gcf()  # get current figure
+
 
     plt.savefig(path, dpi=100)
     plt.clf()

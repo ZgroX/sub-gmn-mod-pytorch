@@ -23,11 +23,12 @@ class TraficSignDataset(InMemoryDataset):
     """Loads all graphs from the Trafic sign dataset"""
 
     def __init__(self, root="data/", data_graph_seg_size=100, query_graph_seg_size=20, data_graph_compactness=50,
-                 query_graph_compactness=150):
+                 query_graph_compactness=150, crop_size=(400, 400)):
         self.data_dir = root
         self.test_path = join(root, "test")
         self.train_path = join(root, "train")
         self.root = root
+        self.crop_size = crop_size
         self.data_graph_seg_size = data_graph_seg_size
         self.query_graph_seg_size = query_graph_seg_size
         self.data_graph_compactness = data_graph_compactness
@@ -49,7 +50,7 @@ class TraficSignDataset(InMemoryDataset):
 
     @property
     def processed_file_names(self):
-        return f"data_pair_qg{self.query_graph_seg_size}.pt"
+        return f"data_pair_qg{self.query_graph_seg_size}_size{self.crop_size[0]}.pt"
 
     def _generate_graphs(self, cropped_img):
         cropped_image, cropped_mask, category = cropped_img
@@ -125,7 +126,7 @@ class TraficSignDataset(InMemoryDataset):
                            colour="GREEN", ):
 
             try:
-                cropped_img = utils.get_cropped_img_mask_cat(img_id)
+                cropped_img = utils.get_cropped_img_mask_cat(img_id, self.crop_size)
             except:
                 print("cropping", img_id)
                 continue

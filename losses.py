@@ -129,12 +129,13 @@ class F1Loss(nn.Module):
         f1 = 2 * p * r / (p + r + eps)
         f1 = torch.where(torch.isnan(f1), torch.zeros_like(f1), f1)
         f1_loss = 1 - torch.mean(f1)
-        #BCE = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([8_000]).to('cuda'))(inputs, targets).to('cuda')
-        return f1_loss #+ BCE
+        # BCE = torch.nn.BCEWithLogitsLoss(pos_weight=torch.Tensor([8_000]).to('cuda'))(inputs, targets).to('cuda')
+        return f1_loss  # + BCE
 
-#todo clip 0.2, gamma_pos = 0
+
+# todo clip 0.2, gamma_pos = 0
 class AsymmetricLoss(nn.Module):
-    def __init__(self, gamma_neg=4, gamma_pos=0, clip=0.2, eps=1e-8, disable_torch_grad_focal_loss=True):
+    def __init__(self, gamma_neg=4, gamma_pos=0, clip=0, eps=1e-8, disable_torch_grad_focal_loss=False):
         super(AsymmetricLoss, self).__init__()
 
         self.gamma_neg = gamma_neg
@@ -152,7 +153,8 @@ class AsymmetricLoss(nn.Module):
         """
 
         # Calculating Probabilities
-        x_sigmoid = torch.sigmoid(x)
+        # x_sigmoid = torch.sigmoid(x)
+        x_sigmoid = x
         xs_pos = x_sigmoid
         xs_neg = 1 - x_sigmoid
 
